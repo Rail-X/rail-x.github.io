@@ -394,46 +394,6 @@
     </div>
 
     <script>
-    <script type="module">
-    import { TrainData } from './train_data.js';
-    import { findTrain } from './train_utils.js';
-    
-    // ===== 获取你已有的元素 =====
-    const input = document.getElementById("trainName");
-    const info = document.getElementById("info");
-    const btn = document.getElementById("calcBtn");
-    
-    // ===== 新系统逻辑（不会影响原 calc）=====
-    function newSearch() {
-        console.log("新系统触发");
-    
-        const value = input.value;
-        const result = findTrain(TrainData, value);
-    
-        if (!result) {
-            info.innerHTML = "❌ 未找到车型（新系统）";
-            return;
-        }
-    
-        // 👉 覆盖显示（关键）
-        info.innerHTML = `
-            <h3>${result.base} - ${result.variant}</h3>
-            <p>类型：${result.baseInfo.type}</p>
-            <p>最高速度：${result.data.speed} km/h</p>
-            <p>加速度：${result.data.a启}</p>
-        `;
-    }
-    
-    // ===== 关键：追加监听，不覆盖原 onclick =====
-    btn.addEventListener("click", newSearch);
-    
-    // ===== 支持回车 =====
-    input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            newSearch();
-        }
-    });
-    </script>
    // ===================== 全车型合规数据库（全覆盖无遗漏 官方标定版） =====================
 // 规则：量产车=运营速度+量产参数，仅isSpecial=true的特殊车可用实验参数
 // 参数严格遵循：工程定义+chinaemu官方标定+拟人系统映射规范
