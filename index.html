@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高铁拟人查询系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --neon-blue: #00e0ff;
+            --neon-cyan: #00f0c8;
+            --neon-purple: #c800f0;
+            --neon-gold: #ffd700;
+            --neon-red: #ff3333;
+            --dark-bg: #050812;
+            --card-bg: #0a1025;
+            --border-color: #1a3a6e;
+            --text-primary: #73b8ff;
+            --text-secondary: #a0c8ff;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Orbitron', 'Noto Sans SC', sans-serif;
+        }
+        body {
+            background-color: var(--dark-bg);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 224, 255, 0.1) 0%, transparent 30%),
+                radial-gradient(circle at 85% 85%, rgba(200, 0, 240, 0.1) 0%, transparent 30%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px var(--neon-blue), 0 0 20px rgba(0, 224, 255, 0.3);
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+        .input-panel {
+            background: var(--card-bg);
+            padding: 25px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 224, 255, 0.1);
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        #trainInput {
+            flex: 1;
+            padding: 15px;
+            background: rgba(5, 8, 18, 0.9);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--neon-cyan);
+            font-size: 1.1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        #trainInput:focus {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+        #calcBtn {
+            padding: 15px 30px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-cyan));
+            border: none;
+            border-radius: 6px;
+            color: var(--dark-bg);
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #calcBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+        .tips {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            color: var(--neon-blue);
+            font-size: 1.2rem;
+        }
+        .loading::after {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 224, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--neon-blue);
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error {
+            color: #ff4444;
+            text-align: center;
+            padding: 30px;
+            font-size: 1.2rem;
+            display: none;
+        }
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 224, 255, 0.1);
+        }
+        .card h2 {
+            color: var(--neon-cyan);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .info-box {
+            background: rgba(16, 37, 70, 0.4);
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        .info-box .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+        .info-box .value {
+            font-size: 1.4rem;
+            color: var(--neon-gold);
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .data-table th, .data-table td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid rgba(26, 58, 110, 0.3);
+        }
+        .data-table th {
+            color: var(--neon-blue);
+            font-weight: 600;
+            width: 40%;
+        }
+        .data-table td {
+            color: var(--neon-cyan);
+        }
+        .double-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .radar-container {
+            height: 400px;
+            width: 100%;
+        }
+        .radar-legend {
+            text-align: center;
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .level-desc {
+            background: rgba(0, 240, 200, 0.1);
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid var(--neon-cyan);
+            margin-top: 15px;
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+        /* 对战模块样式 */
+        .battle-panel {
+            margin-top: 20px;
+        }
+        .battle-input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 120px;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .battle-input {
+            padding: 12px;
+            background: rgba(5, 8, 18, 0.9);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--neon-cyan);
+            font-size: 1rem;
+            outline: none;
+        }
+        .battle-input:focus {
+            border-color: var(--neon-red);
+            box-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+        }
+        #battleBtn {
+            padding: 12px;
+            background: linear-gradient(45deg, #ff3333, #ff6600);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #battleBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.6);
+        }
+        .battle-result {
+            background: rgba(255, 51, 51, 0.05);
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 3px solid var(--neon-red);
+            margin-top: 15px;
+            line-height: 1.8;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .battle-result h3 {
+            color: var(--neon-red);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        .battle-scene {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 51, 51, 0.2);
+        }
+        .battle-scene h4 {
+            color: var(--neon-gold);
+            margin-bottom: 8px;
+        }
+        .win-rate {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--neon-red);
+            margin-bottom: 10px;
+        }
+        @media (max-width: 900px) {
+            .double-grid, .battle-input-group {
+                grid-template-columns: 1fr;
+            }
+            .info-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .header h1 {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>高铁拟人参数查询系统</h1>
+            <p>V1.0版本 CR400BFC5162于2026.5.1完成</p>
+        </div>
+
+        <!-- 单车型分析模块 -->
+        <div class="input-panel">
+            <div class="input-group">
+                <input type="text" id="trainInput" placeholder="输入车次：0=女/1=男+车号 例：0CR400BFC5162、1CR400AF">
+                <button id="calcBtn">开始分析</button>
+            </div>
+            <div class="tips">规则：支持完整输入特殊车号，输入车型系列一律返回量产标准车数据</div>
+        </div>
+
+        <div class="loading" id="loading">正在匹配列车数据库 & 执行拟人计算</div>
+        <div class="error" id="error">未匹配到该列车，请检查车次格式</div>
+
+        <div id="results" style="display: none;">
+            <!-- 基础信息卡片 -->
+            <div class="card">
+                <div class="info-grid">
+                    <div class="info-box">
+                        <div class="label">列车型号</div>
+                        <div class="value" id="trainName">--</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="label">设定性别</div>
+                        <div class="value" id="genderVal">--</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="label">体能等级</div>
+                        <div class="value" id="levelVal">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 原始参数+拟人数据双列卡片 -->
+            <div class="double-grid">
+                <div class="card">
+                    <h2>列车原始工程参数</h2>
+                    <table class="data-table" id="originTable"></table>
+                </div>
+                <div class="card">
+                    <h2>拟人化体能数据</h2>
+                    <table class="data-table" id="physiqueTable"></table>
+                </div>
+            </div>
+
+            <!-- 雷达图卡片 -->
+            <div class="card">
+                <h2>六维体能雷达对比</h2>
+                <div class="radar-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+                <div class="radar-legend">实线：当前列车 | 虚线：同车型量产平均 | 外框：人类奥运冠军生理极限</div>
+            </div>
+
+            <!-- 现实水平对标卡片 -->
+            <div class="card">
+                <h2>现实运动水平对标说明</h2>
+                <div class="level-desc" id="levelDesc">
+                    <!-- 动态填充对标内容 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 双车对战模块 -->
+        <div class="card battle-panel">
+            <h2>双车拟人对比</h2>
+            <div class="battle-input-group">
+                <input type="text" class="battle-input" id="train1" placeholder="攻方车次 例：0CR400BFC5162">
+                <input type="text" class="battle-input" id="train2" placeholder="守方车次 例：1CR400AF">
+                <button id="battleBtn">开始对比</button>
+            </div>
+            <div class="tips">规则：量产标准车默认普通人基准，仅特殊车拥有实验级战斗实力</div>
+            <div class="battle-result" id="battleResult">
+                <h3 id="battleTitle">对比结果</h3>
+                <div class="win-rate" id="winRate">综合胜率：--</div>
+                <div class="battle-scene">
+                    <h4>场景1：近身</h4>
+                    <p id="scene1">--</p>
+                </div>
+                <div class="battle-scene">
+                    <h4>场景2：中距离拉扯</h4>
+                    <p id="scene2">--</p>
+                </div>
+                <div class="battle-scene">
+                    <h4>场景3：耐力</h4>
+                    <p id="scene3">--</p>
+                </div>
+                <div class="battle-scene">
+                    <h4>结果预判</h4>
+                    <p id="finalResult">--</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+   // ===================== 全车型合规数据库（全覆盖无遗漏 官方标定版） =====================
+// 规则：量产车=运营速度+量产参数，仅isSpecial=true的特殊车可用实验参数
+// 参数严格遵循：工程定义+chinaemu官方标定+拟人系统映射规范
+const fullTrainDB = {
+    // ============== 特殊车专区（赛事/实验/动检/纪录车） ==============
+    // 赛事专属特殊车
+    "CR400BFC5162": {
+        name: "CR400BF-C-5162",
+        series: "CR400BF",
+        speed: 385.000,
+        F启: 182.000,
+        F持: 92.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 270.000,
+        L: 280.000,
+        a启: 1.920,
+        type: "赛事专属车",
+        buff: 1.100,
+        defaultGender: "女",
+        isSpecial: true
+    },
+    "CR400BFC5145": {
+        name: "CR400BF-C-5145",
+        series: "CR400BF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 280.000,
+        L: 260.000,
+        a启: 1.908,
+        type: "赛事专属车",
+        buff: 1.080,
+        defaultGender: "女",
+        isSpecial: true
+    },
+    "CR400BFC5144": {
+        name: "CR400BF-C-5144",
+        series: "CR400BF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 280.000,
+        L: 260.000,
+        a启: 1.908,
+        type: "赛事专属车",
+        buff: 1.080,
+        defaultGender: "女",
+        isSpecial: true
+    },
+    "CR400BFZ0524": {
+        name: "CR400BF-Z-0524",
+        series: "CR400BF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 290.000,
+        L: 250.000,
+        a启: 1.908,
+        type: "赛事专属车",
+        buff: 1.060,
+        defaultGender: "女",
+        isSpecial: true
+    },
+
+    // 复兴号实验样车
+    "CR400AF0207": {
+        name: "CR400AF-0207",
+        series: "CR400AF",
+        speed: 420.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 300.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "纯实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CR400AF0208": {
+        name: "CR400AF-0208",
+        series: "CR400AF",
+        speed: 420.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 300.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "纯实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CR400BF0503": {
+        name: "CR400BF-0503",
+        series: "CR400BF",
+        speed: 420.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 295.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "纯实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CR400AFC2214": {
+        name: "CR400AF-C-2214",
+        series: "CR400AF",
+        speed: 435.000,
+        F启: 176.000,
+        F持: 88.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 290.000,
+        L: 250.000,
+        a启: 1.880,
+        type: "纯实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+
+    // 高速综合检测动检车（补齐AFJ/BFJ 0001/0002/0003 全编号）
+    "CR400AFJ0001": {
+        name: "CR400AF-J-0001",
+        series: "CR400AF",
+        speed: 453.000,
+        F启: 180.000,
+        F持: 91.000,
+        P: 1350.000,
+        P制: 1250.000,
+        t响: 280.000,
+        L: 200.000,
+        a启: 1.950,
+        type: "动检实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CR400AFJ0002": {
+        name: "CR400AF-J-0002",
+        series: "CR400AF",
+        speed: 453.000,
+        F启: 180.000,
+        F持: 91.000,
+        P: 1350.000,
+        P制: 1250.000,
+        t响: 281.000,
+        L: 200.000,
+        a启: 1.950,
+        type: "动检实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CR400AFJ0003": {
+        name: "CR400AF-J-0003",
+        series: "CR400AF",
+        speed: 453.000,
+        F启: 180.000,
+        F持: 91.000,
+        P: 1350.000,
+        P制: 1250.000,
+        t响: 282.000,
+        L: 200.000,
+        a启: 1.950,
+        type: "动检实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CR400BFJ0001": {
+        name: "CR400BF-J-0001",
+        series: "CR400BF",
+        speed: 453.000,
+        F启: 180.000,
+        F持: 91.000,
+        P: 1350.000,
+        P制: 1250.000,
+        t响: 275.000,
+        L: 200.000,
+        a启: 1.950,
+        type: "动检实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CR400BFJ0002": {
+        name: "CR400BF-J-0002",
+        series: "CR400BF",
+        speed: 453.000,
+        F启: 180.000,
+        F持: 91.000,
+        P: 1350.000,
+        P制: 1250.000,
+        t响: 276.000,
+        L: 200.000,
+        a启: 1.950,
+        type: "动检实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CR400BFJ0003": {
+        name: "CR400BF-J-0003",
+        series: "CR400BF",
+        speed: 453.000,
+        F启: 180.000,
+        F持: 91.000,
+        P: 1350.000,
+        P制: 1250.000,
+        t响: 277.000,
+        L: 200.000,
+        a启: 1.950,
+        type: "动检实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+
+    "CRH380AJ0201": {
+        name: "CRH380AJ-0201",
+        series: "CRH380A",
+        speed: 452.000,
+        F启: 170.000,
+        F持: 78.000,
+        P: 1176.000,
+        P制: 1100.000,
+        t响: 290.000,
+        L: 180.000,
+        a启: 1.750,
+        type: "动检实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CRH2A2010": {
+        name: "CRH2A-2010",
+        series: "CRH2A",
+        speed: 250.000,
+        F启: 144.000,
+        F持: 60.000,
+        P: 900.000,
+        P制: 500.000,
+        t响: 320.000,
+        L: 180.000,
+        a启: 0.500,
+        type: "动检实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CRH2C2061": {
+        name: "CRH2C-2061",
+        series: "CRH2C",
+        speed: 300.000,
+        F启: 145.000,
+        F持: 70.000,
+        P: 1200.000,
+        P制: 812.500,
+        t响: 310.000,
+        L: 190.000,
+        a启: 0.700,
+        type: "动检实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+
+    // 极限实验世界纪录车
+    "CRH380AL2541": {
+        name: "CRH380AL-2541 486km/h",
+        series: "CRH380AL",
+        speed: 486.100,
+        F启: 160.000,
+        F持: 73.000,
+        P: 1100.000,
+        P制: 1080.000,
+        t响: 310.000,
+        L: 200.000,
+        a启: 1.700,
+        type: "极限实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CRH380BL3502": {
+        name: "CRH380BL-3502 487km/h",
+        series: "CRH380BL",
+        speed: 487.300,
+        F启: 163.000,
+        F持: 74.000,
+        P: 1125.000,
+        P制: 1075.000,
+        t响: 315.000,
+        L: 200.000,
+        a启: 1.720,
+        type: "极限实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CRH380AM0204": {
+        name: "CRH380AM-0204 CIT500 605km/h",
+        series: "CRH380AM",
+        speed: 605.000,
+        F启: 220.000,
+        F持: 100.000,
+        P: 2280.000,
+        P制: 1800.000,
+        t响: 250.000,
+        L: 100.000,
+        a启: 2.500,
+        type: "极限实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CRH2C2150": {
+        name: "CRH2C-2150 394km/h",
+        series: "CRH2C",
+        speed: 394.000,
+        F启: 150.000,
+        F持: 72.000,
+        P: 1200.000,
+        P制: 850.000,
+        t响: 305.000,
+        L: 190.000,
+        a启: 0.750,
+        type: "纯实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CR450AF": {
+        name: "CR450AF 新一代复兴号",
+        series: "CR450",
+        speed: 453.000,
+        F启: 185.000,
+        F持: 95.000,
+        P: 1400.000,
+        P制: 1300.000,
+        t响: 260.000,
+        L: 150.000,
+        a启: 2.000,
+        type: "极限实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+    "CR450BF": {
+        name: "CR450BF 新一代复兴号",
+        series: "CR450",
+        speed: 453.000,
+        F启: 185.000,
+        F持: 95.000,
+        P: 1400.000,
+        P制: 1300.000,
+        t响: 260.000,
+        L: 150.000,
+        a启: 2.000,
+        type: "极限实验车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: true
+    },
+
+    // ============== 量产标准车专区（补齐所有AFAZ/BFGZ/BFGS全排列亚型 无遗漏） ==============
+    // 复兴号CR400AF全系列量产型（全覆盖亚型）
+    "CR400AF": {
+        name: "CR400AF 复兴号标准量产车",
+        series: "CR400AF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 300.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CR400AFG": {
+        name: "CR400AF-G 高寒型复兴号量产车",
+        series: "CR400AF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 300.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CR400AFS": {
+        name: "CR400AF-S 智能型复兴号量产车",
+        series: "CR400AF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 295.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CR400AFZ": {
+        name: "CR400AF-Z 智能型复兴号量产车",
+        series: "CR400AF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 300.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CR400AFP": {
+        name: "CR400AF-P 卧铺复兴号量产车",
+        series: "CR400AF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 300.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+
+    // 复兴号CR400BF全系列量产型（补齐BFGZ/BFGS所有排列组合）
+    "CR400BF": {
+        name: "CR400BF 复兴号标准量产车",
+        series: "CR400BF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 295.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CR400BFG": {
+        name: "CR400BF-G 高寒型复兴号量产车",
+        series: "CR400BF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 295.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CR400BFS": {
+        name: "CR400BF-S 智能型复兴号量产车",
+        series: "CR400BF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 290.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CR400BFZ": {
+        name: "CR400BF-Z 智能型复兴号量产车",
+        series: "CR400BF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 295.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CR400BFP": {
+        name: "CR400BF-P 卧铺复兴号量产车",
+        series: "CR400BF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 295.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    // 补齐用户要的 BFGZ / BFGS 组合亚型
+    "CR400BFGZ": {
+        name: "CR400BF-GZ 高寒智能复兴号量产车",
+        series: "CR400BF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 295.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CR400BFGS": {
+        name: "CR400BF-GS 高寒智能复兴号量产车",
+        series: "CR400BF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 292.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    // 补齐用户要的 AFAZ 组合亚型
+    "CR400AFAZ": {
+        name: "CR400AF-AZ 高寒智能复兴号量产车",
+        series: "CR400AF",
+        speed: 350.000,
+        F启: 178.000,
+        F持: 90.000,
+        P: 1250.000,
+        P制: 1200.000,
+        t响: 300.000,
+        L: 240.000,
+        a启: 1.908,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+
+    // CRH380系列量产车
+    "CRH380A": {
+        name: "CRH380A 和谐号标准量产车",
+        series: "CRH380A",
+        speed: 350.000,
+        F启: 155.000,
+        F持: 70.000,
+        P: 1080.000,
+        P制: 1050.000,
+        t响: 310.000,
+        L: 200.000,
+        a启: 1.650,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CRH380AL": {
+        name: "CRH380AL 和谐号标准量产车",
+        series: "CRH380AL",
+        speed: 350.000,
+        F启: 160.000,
+        F持: 72.000,
+        P: 1100.000,
+        P制: 1070.000,
+        t响: 320.000,
+        L: 200.000,
+        a启: 1.680,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CRH380BL": {
+        name: "CRH380BL 和谐号标准量产车",
+        series: "CRH380BL",
+        speed: 350.000,
+        F启: 160.000,
+        F持: 72.000,
+        P: 1100.000,
+        P制: 1070.000,
+        t响: 320.000,
+        L: 200.000,
+        a启: 1.680,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CRH380B": {
+        name: "CRH380B 和谐号标准量产车",
+        series: "CRH380B",
+        speed: 350.000,
+        F启: 160.000,
+        F持: 70.000,
+        P: 1100.000,
+        P制: 1070.000,
+        t响: 315.000,
+        L: 200.000,
+        a启: 1.680,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+
+    // 和谐号全系列量产车
+    "CRH1A": {
+        name: "CRH1A 和谐号标准量产车",
+        series: "CRH1A",
+        speed: 250.000,
+        F启: 140.000,
+        F持: 60.000,
+        P: 662.500,
+        P制: 500.000,
+        t响: 330.000,
+        L: 180.000,
+        a启: 0.600,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CRH1E": {
+        name: "CRH1E 和谐号卧铺量产车",
+        series: "CRH1E",
+        speed: 250.000,
+        F启: 150.000,
+        F持: 65.000,
+        P: 687.500,
+        P制: 520.000,
+        t响: 335.000,
+        L: 180.000,
+        a启: 0.600,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CRH2A": {
+        name: "CRH2A 和谐号标准量产车",
+        series: "CRH2A",
+        speed: 250.000,
+        F启: 144.000,
+        F持: 60.000,
+        P: 900.000,
+        P制: 500.000,
+        t响: 320.000,
+        L: 180.000,
+        a启: 0.500,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CRH2C": {
+        name: "CRH2C 和谐号标准量产车",
+        series: "CRH2C",
+        speed: 300.000,
+        F启: 145.000,
+        F持: 70.000,
+        P: 1200.000,
+        P制: 812.500,
+        t响: 310.000,
+        L: 190.000,
+        a启: 0.700,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CRH3C": {
+        name: "CRH3C 和谐号标准量产车",
+        series: "CRH3C",
+        speed: 350.000,
+        F启: 160.000,
+        F持: 70.000,
+        P: 1100.000,
+        P制: 1000.000,
+        t响: 310.000,
+        L: 200.000,
+        a启: 1.600,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CRH5A": {
+        name: "CRH5A 和谐号标准量产车",
+        series: "CRH5A",
+        speed: 250.000,
+        F启: 75.000,
+        F持: 50.000,
+        P: 687.500,
+        P制: 600.000,
+        t响: 325.000,
+        L: 180.000,
+        a启: 0.560,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CRH5G": {
+        name: "CRH5G 高寒型和谐号量产车",
+        series: "CRH5G",
+        speed: 250.000,
+        F启: 78.000,
+        F持: 52.000,
+        P: 687.500,
+        P制: 620.000,
+        t响: 320.000,
+        L: 190.000,
+        a启: 0.560,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    },
+    "CRH6A": {
+        name: "CRH6A 市域动车组量产车",
+        series: "CRH6A",
+        speed: 200.000,
+        F启: 125.000,
+        F持: 55.000,
+        P: 580.000,
+        P制: 450.000,
+        t响: 330.000,
+        L: 150.000,
+        a启: 0.800,
+        type: "标准量产车",
+        buff: 1.000,
+        defaultGender: "男",
+        isSpecial: false
+    }
+};
+
+        // ===================== 同车型量产平均基准库 =====================
+        const seriesAvgBase = {
+            "CR400AF": [60, 60, 60, 60, 60, 60],
+            "CR400BF": [60, 60, 60, 60, 60, 60],
+            "CR450": [75, 75, 75, 75, 75, 75],
+            "CRH380A": [58, 58, 58, 58, 58, 58],
+            "CRH380AL": [58, 58, 58, 58, 58, 58],
+            "CRH380BL": [58, 58, 58, 58, 58, 58],
+            "CRH380B": [58, 58, 58, 58, 58, 58],
+            "CRH380AM": [95, 95, 95, 95, 95, 95],
+            "CRH1A": [40, 40, 40, 40, 40, 40],
+            "CRH1E": [40, 40, 40, 40, 40, 40],
+            "CRH2A": [40, 40, 40, 40, 40, 40],
+            "CRH2C": [45, 45, 45, 45, 45, 45],
+            "CRH3C": [55, 55, 55, 55, 55, 55],
+            "CRH5A": [38, 38, 38, 38, 38, 38],
+            "CRH5G": [38, 38, 38, 38, 38, 38],
+            "CRH6A": [35, 35, 35, 35, 35, 35]
+        };
+
+        // ===================== 现实基准值库（100%合规：量产车=普通人基准） =====================
+        const realWorldBase = {
+            男: {
+                min: { 深蹲: 120.000, 卧推: 60.000, 百米: 13.500, 跳远: 2.400, 摄氧: 45.000, 反应: 220.000, 耐力: 40.000, 骨密: 1.200, 抗荷: 2.500, 抗疲: 70.000 },
+                max: { 深蹲: 320.000, 卧推: 160.000, 百米: 9.580, 跳远: 3.700, 摄氧: 85.000, 反应: 150.000, 耐力: 75.000, 骨密: 1.500, 抗荷: 3.600, 抗疲: 92.000 }
+            },
+            女: {
+                min: { 深蹲: 90.000, 卧推: 45.000, 百米: 14.000, 跳远: 2.000, 摄氧: 35.000, 反应: 215.000, 耐力: 42.000, 骨密: 1.100, 抗荷: 2.500, 抗疲: 70.000 },
+                max: { 深蹲: 220.000, 卧推: 110.000, 百米: 10.490, 跳远: 3.100, 摄氧: 75.000, 反应: 155.000, 耐力: 78.000, 骨密: 1.400, 抗荷: 3.600, 抗疲: 92.000 }
+            }
+        };
+
+        // ===================== 合规拟合算法（终极修复：量产车=纯普通人基准，仅特殊车走实验拟合） =====================
+function calcFinalStats(train, gender) {
+    const base = realWorldBase[gender];
+    const minBase = base.min; // 普通健康成年人基准值
+    const maxBase = base.max; // 人类生理极限
+    const buff = train.buff;
+
+    // ========== 终极合规规则：量产车直接锁死为普通人基准，无任何拟合加成 ==========
+    if (!train.isSpecial) {
+        let stats = {};
+        // 量产车：所有体能指标 = 普通健康成年人基准值（无任何浮动、无任何加成）
+        stats.深蹲 = parseFloat(minBase.深蹲.toFixed(3));
+        stats.卧推 = parseFloat(minBase.卧推.toFixed(3));
+        stats.百米 = parseFloat(minBase.百米.toFixed(3));
+        stats.跳远 = parseFloat(minBase.跳远.toFixed(3));
+        stats.摄氧 = parseFloat(minBase.摄氧.toFixed(3));
+        stats.耐力 = parseFloat(minBase.耐力.toFixed(3));
+        stats.反应 = parseFloat(minBase.反应.toFixed(3));
+        stats.骨密 = parseFloat(minBase.骨密.toFixed(3));
+        stats.抗荷 = parseFloat(minBase.抗荷.toFixed(3));
+        stats.抗疲 = parseFloat(minBase.抗疲.toFixed(3));
+
+        // 量产车强制等级：普通健康成年人（杜绝任何运动员等级）
+        return { 
+            stats, 
+            level: "普通健康成年人", 
+            comprehensiveRatio: 0 
+        };
+    }
+
+    // ========== 仅特殊车：执行实验级拟合算法，解锁超人类体能 ==========
+    const speedRatio = Math.max(0, Math.min(1, (train.speed - 350.000) / (487.300 - 350.000)));
+    const F启Ratio = Math.max(0, Math.min(1, (train.F启 - 75.000) / (220.000 - 75.000)));
+    const F持Ratio = Math.max(0, Math.min(1, (train.F持 - 45.000) / (100.000 - 45.000)));
+    const PRatio = Math.max(0, Math.min(1, (train.P - 580.000) / (2280.000 - 580.000)));
+    const P制Ratio = Math.max(0, Math.min(1, (train.P制 - 450.000) / (1800.000 - 450.000)));
+    const t响Ratio = Math.max(0, Math.min(1, (335.000 - train.t响) / (335.000 - 250.000)));
+    const a启Ratio = Math.max(0, Math.min(1, (train.a启 - 0.500) / (2.500 - 0.500)));
+    const LRatio = Math.max(0, Math.min(1, (train.L - 100.000) / (280.000 - 100.000)));
+
+    // 核心拟合：腿部力量为所有爆发指标的核心
+    const F综合 = Math.sqrt(train.F启 * train.F持);
+    const F综合Ratio = Math.max(0, Math.min(1, (F综合 - 58.000) / (148.000 - 58.000)));
+    
+    let stats = {};
+    // 下肢绝对力量=启动+持续牵引力综合值
+    stats.深蹲 = parseFloat((minBase.深蹲 + (maxBase.深蹲 - minBase.深蹲) * F综合Ratio).toFixed(3)) * buff;
+    // 上肢绝对力量=制动功率
+    stats.卧推 = parseFloat((minBase.卧推 + (maxBase.卧推 - minBase.卧推) * P制Ratio).toFixed(3)) * buff;
+    // 百米成绩：70%腿部力量，30%最高速度
+    stats.百米 = parseFloat((minBase.百米 - (minBase.百米 - maxBase.百米) * (F综合Ratio * 0.7 + speedRatio * 0.3)).toFixed(3)) / buff;
+    // 立定跳远：70%腿部力量，30%启动加速度
+    stats.跳远 = parseFloat((minBase.跳远 + (maxBase.跳远 - minBase.跳远) * (F综合Ratio * 0.7 + a启Ratio * 0.3)).toFixed(3)) * buff;
+    // 最大摄氧量=持续牵引功率
+    stats.摄氧 = parseFloat((minBase.摄氧 + (maxBase.摄氧 - minBase.摄氧) * PRatio).toFixed(3)) * buff;
+    // 肌肉耐力=持续牵引力+无故障里程
+    stats.耐力 = parseFloat((minBase.耐力 + (maxBase.耐力 - minBase.耐力) * (F持Ratio * 0.4 + LRatio * 0.6)).toFixed(3)) * buff;
+    // 神经反应速度=制动响应时间
+    stats.反应 = parseFloat((minBase.反应 - (minBase.反应 - maxBase.反应) * t响Ratio).toFixed(3)) / buff;
+    // 骨密度=制动功率
+    stats.骨密 = parseFloat((minBase.骨密 + (maxBase.骨密 - minBase.骨密) * P制Ratio).toFixed(3)) * buff;
+    // 抗负荷能力=启动牵引力+制动功率
+    stats.抗荷 = parseFloat((minBase.抗荷 + (maxBase.抗荷 - minBase.抗荷) * (F启Ratio * 0.3 + P制Ratio * 0.7)).toFixed(3)) * buff;
+    // 抗疲劳能力=无故障里程
+    stats.抗疲 = parseFloat((minBase.抗疲 + (maxBase.抗疲 - minBase.抗疲) * LRatio).toFixed(3)) * buff;
+
+    // 运动员等级判定：仅特殊车可获得高级运动员等级
+    let level = "普通健康成年人";
+    const comprehensiveRatio = (speedRatio + F综合Ratio + PRatio) / 3;
+    if (comprehensiveRatio >= 0.95) level = "奥运冠军级";
+    else if (comprehensiveRatio >= 0.7) level = "国际健将级";
+    else if (comprehensiveRatio >= 0.45) level = "国家健将级";
+    else if (comprehensiveRatio >= 0.25) level = "国家一级运动员";
+    else if (comprehensiveRatio >= 0) level = "国家二级运动员";
+
+    return { stats, level, comprehensiveRatio };
+}
+                // ===================== 雷达图数据生成 =====================
+        function getRadarData(stats, gender) {
+            const maxBase = realWorldBase[gender].max;
+            return [
+                Math.round((stats.深蹲 / maxBase.深蹲) * 100),
+                Math.round(((14.000 - stats.百米) / (14.000 - 10.490)) * 100),
+                Math.round((stats.耐力 / maxBase.耐力) * 100),
+                Math.round((stats.摄氧 / maxBase.摄氧) * 100),
+                Math.round(((220.000 - stats.反应) / (220.000 - 155.000)) * 100),
+                Math.round((stats.抗荷 / maxBase.抗荷) * 100)
+            ];
+        }
+
+        // ===================== 雷达图数据生成 =====================
+        function getRadarData(stats, gender, isSpecial) {
+            const maxBase = realWorldBase[gender].max;
+            const minBase = realWorldBase[gender].min;
+
+            // 量产车固定雷达分：全部锁定在普通人基准60分
+            if (!isSpecial) {
+                return [60, 60, 60, 60, 60, 60];
+            }
+
+            // 仅特殊车正常计算雷达分值
+            return [
+                Math.round((stats.深蹲 / maxBase.深蹲) * 100),
+                Math.round(((minBase.百米 - stats.百米) / (minBase.百米 - maxBase.百米)) * 100),
+                Math.round((stats.耐力 / maxBase.耐力) * 100),
+                Math.round((stats.摄氧 / maxBase.摄氧) * 100),
+                Math.round(((minBase.反应 - stats.反应) / (minBase.反应 - maxBase.反应)) * 100),
+                Math.round((stats.抗荷 / maxBase.抗荷) * 100)
+            ];
+        }
+
+        // ===================== 雷达图绘制 =====================
+        function drawRadarChart(data, series, name) {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            const avgData = seriesAvgBase[series] || [60,60,60,60,60,60];
+            const maxData = [100,100,100,100,100,100];
+            if (window.radarIns) window.radarIns.destroy();
+
+            window.radarIns = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ["绝对力量", "爆发速度", "肌肉耐力", "心肺功能", "神经灵敏", "骨骼抗荷"],
+                    datasets: [
+                        {
+                            label: name,
+                            data: data,
+                            borderColor: '#00f0c8',
+                            backgroundColor: 'rgba(0, 240, 200, 0.2)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#00f0c8',
+                            pointRadius: 6,
+                            pointHoverRadius: 9
+                        },
+                        {
+                            label: "同车型量产平均",
+                            data: avgData,
+                            borderColor: '#c800f0',
+                            backgroundColor: 'rgba(200, 0, 240, 0.1)',
+                            borderWidth: 2,
+                            borderDash: [6, 6],
+                            pointRadius: 4
+                        },
+                        {
+                            label: "人类生理极限",
+                            data: maxData,
+                            borderColor: '#ffd700',
+                            backgroundColor: 'transparent',
+                            borderWidth: 1,
+                            borderDash: [10, 5],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(26, 58, 110, 0.6)', lineWidth: 1 },
+                            grid: { color: 'rgba(26, 58, 110, 0.6)', lineWidth: 1 },
+                            pointLabels: { color: '#73b8ff', font: { size: 12, family: 'Orbitron' } },
+                            ticks: { color: '#a0c8ff', backdropColor: 'transparent', stepSize: 20, suggestedMin: 0, suggestedMax: 100 },
+                            backgroundColor: 'rgba(5, 8, 18, 0.5)'
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: 'white', font: { size: 11, family: 'Orbitron' }, padding: 12 },
+                            position: 'top'
+                        }
+                    },
+                    elements: { line: { tension: 0.2 } },
+                    animation: { duration: 1000, easing: 'easeOutQuart' }
+                }
+            });
+        }
+
+        // ===================== 智能车次匹配+性别识别 =====================
+function matchTrain(input) {
+    let inputClean = input.trim().toUpperCase();
+    let customGender = null;
+
+    if (inputClean.startsWith('0')) {
+        customGender = '女';
+        inputClean = inputClean.substring(1);
+    } else if (inputClean.startsWith('1')) {
+        customGender = '男';
+        inputClean = inputClean.substring(1);
+    }
+
+    const trainNoClean = inputClean.replace(/[^A-Z0-9]/gi, '');
+
+    // 优先精准匹配特殊完整车号
+    for (let key in fullTrainDB) {
+        const keyClean = key.replace(/[^A-Z0-9]/gi, '');
+        if (fullTrainDB[key].isSpecial && trainNoClean === keyClean) {
+            const train = JSON.parse(JSON.stringify(fullTrainDB[key]));
+            if (customGender) train.defaultGender = customGender;
+            return train;
+        }
+    }
+
+    // 🔴 修复：模糊匹配量产车型 - 优先匹配最长、最精准的车型
+    let matchedProductionCars = [];
+    for (let key in fullTrainDB) {
+        const keyClean = key.replace(/[^A-Z0-9]/gi, '');
+        if (!fullTrainDB[key].isSpecial && trainNoClean.includes(keyClean)) {
+            matchedProductionCars.push({ key, keyClean });
+        }
+    }
+    // 按车型长度降序排序，取最长的精准匹配
+    if (matchedProductionCars.length > 0) {
+        matchedProductionCars.sort((a, b) => b.keyClean.length - a.keyClean.length);
+        const bestMatchKey = matchedProductionCars[0].key;
+        const train = JSON.parse(JSON.stringify(fullTrainDB[bestMatchKey]));
+        if (customGender) train.defaultGender = customGender;
+        return train;
+    }
+
+    // CRH380BL 特殊号段区分
+    if (trainNoClean.includes('CRH380BL')) {
+        const numMatch = trainNoClean.match(/(\d{4})$/);
+        if (numMatch) {
+            const carNum = parseInt(numMatch[1]);
+            if (carNum >= 3501 && carNum <= 3570) {
+                const train = JSON.parse(JSON.stringify(fullTrainDB['CRH380BL3502']));
+                if (customGender) train.defaultGender = customGender;
+                return train;
+            }
+        }
+        const train = JSON.parse(JSON.stringify(fullTrainDB['CRH380BL']));
+        if (customGender) train.defaultGender = customGender;
+        return train;
+    }
+
+    return null;
+}
+
+        // ===================== 表格填充 =====================
+        function fillOriginTable(train) {
+            const table = document.getElementById('originTable');
+            table.innerHTML = '';
+            const map = {
+                "最高运营/实验速度": train.speed.toFixed(3) + " km/h",
+                "单轴启动牵引力": train.F启.toFixed(3) + " kN",
+                "单轴持续牵引力": train.F持.toFixed(3) + " kN",
+                "单轴持续功率": train.P.toFixed(3) + " kW",
+                "单轴制动功率": train.P制.toFixed(3) + " kW",
+                "制动响应时间": train.t响.toFixed(3) + " ms",
+                "启动加速度": train.a启.toFixed(3) + " km/h/s",
+                "设计无故障里程": train.L.toFixed(3) + " 万km"
+            };
+            for (let label in map) {
+                const tr = document.createElement('tr');
+                const th = document.createElement('th');
+                const td = document.createElement('td');
+                th.innerText = label;
+                td.innerText = map[label];
+                tr.appendChild(th);
+                tr.appendChild(td);
+                table.appendChild(tr);
+            }
+        }
+
+        function fillPhysiqueTable(stats) {
+            const table = document.getElementById('physiqueTable');
+            table.innerHTML = '';
+            const map = {
+                "下肢绝对力量(深蹲)": stats.深蹲.toFixed(3) + " kgf",
+                "上肢绝对力量(卧推)": stats.卧推.toFixed(3) + " kgf",
+                "百米冲刺最好成绩": stats.百米.toFixed(3) + " s",
+                "立定跳远": stats.跳远.toFixed(3) + " m",
+                "最大摄氧量": stats.摄氧.toFixed(3) + " ml/(kg·min)",
+                "神经反应速度": stats.反应.toFixed(3) + " ms",
+                "肌肉耐力(1分钟深蹲)": stats.耐力.toFixed(3) + " 次",
+                "骨密度": stats.骨密.toFixed(3) + " g/cm²",
+                "最大抗负荷能力": stats.抗荷.toFixed(3) + " G",
+                "抗疲劳评分": stats.抗疲.toFixed(3) + " 分"
+            };
+            for (let label in map) {
+                const tr = document.createElement('tr');
+                const th = document.createElement('th');
+                const td = document.createElement('td');
+                th.innerText = label;
+                td.innerText = map[label];
+                tr.appendChild(th);
+                tr.appendChild(td);
+                table.appendChild(tr);
+            }
+        }
+
+        // ===================== 现实水平对标生成（加固量产车固定文案） =====================
+        function genLevelDesc(stats, gender, level, isSpecial) {
+            const desc = [];
+            const isMale = gender === '男';
+
+            if (isSpecial) {
+                desc.unshift(`⚠️ 该车为特殊实验/赛事专属车，拥有超量产标准的实验级体能实力`);
+            } else {
+                // 量产车强制固定普通人文案，不做任何高级对标
+                desc.unshift(`⚠️ 该车为标准量产动车组，严格锁定普通健康成年${gender}性体能基准，无任何实验级强化`);
+                desc.push(`✅ 腿部力量：${stats.深蹲.toFixed(3)}kg，为普通成年${gender}性标准水平。`);
+                desc.push(`✅ 上肢力量：${stats.卧推.toFixed(3)}kg，为普通成年${gender}性标准水平。`);
+                desc.push(`✅ 奔跑能力：百米${stats.百米.toFixed(3)}s，为普通成年${gender}性正常水准。`);
+                desc.push(`✅ 神经反应：${stats.反应.toFixed(3)}ms，符合普通成年人平均反应速度。`);
+                desc.push(`🏆 综合运动等级：${level}`);
+                return desc.join('<br><br>');
+            }
+
+            // 以下仅特殊车执行高级对标
+            const squat = stats.深蹲;
+            if (squat >= (isMale ? 300.000 : 200.000)) {
+                desc.push(`✅ 腿部力量：深蹲${squat.toFixed(3)}kg，达到奥运举重冠军水平，全力踹击冲击力峰值超过${(squat * 25).toFixed(0)}N。`);
+            } else if (squat >= (isMale ? 200.000 : 150.000)) {
+                desc.push(`✅ 腿部力量：深蹲${squat.toFixed(3)}kg，达到国家健将级举重运动员水平。`);
+            } else if (squat >= (isMale ? 150.000 : 110.000)) {
+                desc.push(`✅ 腿部力量：深蹲${squat.toFixed(3)}kg，达到国家一级运动员水平。`);
+            } else {
+                desc.push(`✅ 腿部力量：深蹲${squat.toFixed(3)}kg，达到健康成年${gender}性平均水平。`);
+            }
+
+            const bench = stats.卧推;
+            if (bench >= (isMale ? 150.000 : 100.000)) {
+                desc.push(`✅ 上肢力量：卧推${bench.toFixed(3)}kg，达到奥运冠军水平。`);
+            } else if (bench >= (isMale ? 100.000 : 70.000)) {
+                desc.push(`✅ 上肢力量：卧推${bench.toFixed(3)}kg，达到国家健将级水平。`);
+            } else {
+                desc.push(`✅ 上肢力量：卧推${bench.toFixed(3)}kg，达到健康成年${gender}性平均水平。`);
+            }
+
+            const hundred = stats.百米;
+            if (hundred <= (isMale ? 10.000 : 11.000)) {
+                desc.push(`✅ 奔跑能力：百米${hundred.toFixed(3)}s，达到奥运参赛顶级水平。`);
+            } else if (hundred <= (isMale ? 11.500 : 12.800)) {
+                desc.push(`✅ 奔跑能力：百米${hundred.toFixed(3)}s，达到国家二级运动员标准。`);
+            } else {
+                desc.push(`✅ 奔跑能力：百米${hundred.toFixed(3)}s，达到健康成年${gender}性平均水平。`);
+            }
+
+            const reaction = stats.反应;
+            if (reaction <= 160.000) {
+                desc.push(`✅ 神经反应：${reaction.toFixed(3)}ms，达到奥运顶级运动员水准。`);
+            } else if (reaction <= 200.000) {
+                desc.push(`✅ 神经反应：${reaction.toFixed(3)}ms，达到专业运动员水平。`);
+            } else {
+                desc.push(`✅ 神经反应：${reaction.toFixed(3)}ms，达到健康成年${gender}性平均水平。`);
+            }
+
+            desc.push(`🏆 综合运动等级：${level}`);
+            return desc.join('<br><br>');
+        }
+
+        // ===================== 对战核心计算函数 =====================
+        function calcBattleResult(train1, train2) {
+            let res1 = calcFinalStats(train1, train1.defaultGender);
+            let res2 = calcFinalStats(train2, train2.defaultGender);
+            const stats1 = res1.stats;
+            const stats2 = res2.stats;
+            const name1 = train1.name;
+            const name2 = train2.name;
+            const isSpecial1 = train1.isSpecial;
+            const isSpecial2 = train2.isSpecial;
+
+            // 量产车互殴、特殊车打量产车 逻辑自动生效
+            const powerScore1 = stats1.深蹲 * 0.6 + stats1.卧推 * 0.3 + stats1.抗荷 * 0.1;
+            const powerScore2 = stats2.深蹲 * 0.6 + stats2.卧推 * 0.3 + stats2.抗荷 * 0.1;
+            const meleeWinRate = Math.round((powerScore1 / (powerScore1 + powerScore2)) * 100);
+
+            const speedScore1 = (15 - stats1.百米) * 0.6 + (250 - stats1.反应) * 0.4;
+            const speedScore2 = (15 - stats2.百米) * 0.6 + (250 - stats2.反应) * 0.4;
+            const speedWinRate = Math.round((speedScore1 / (speedScore1 + speedScore2)) * 100);
+
+            const enduranceScore1 = stats1.耐力 * 0.5 + stats1.摄氧 * 0.3 + stats1.抗疲 * 0.2;
+            const enduranceScore2 = stats2.耐力 * 0.5 + stats2.摄氧 * 0.3 + stats2.抗疲 * 0.2;
+            const enduranceWinRate = Math.round((enduranceScore1 / (enduranceScore1 + enduranceScore2)) * 100);
+
+            const totalWinRate = Math.round(meleeWinRate * 0.4 + speedWinRate * 0.3 + enduranceWinRate * 0.3);
+
+            // 近身肉搏描述
+            let meleeDesc = '';
+            const powerGap = Math.abs(powerScore1 - powerScore2);
+            if (powerScore1 > powerScore2) {
+                if (powerGap > powerScore2 * 0.5) {
+                    meleeDesc = `${name1}拥有碾压级力量优势，深蹲${stats1.深蹲.toFixed(3)}kg，远超${name2}的${stats2.深蹲.toFixed(3)}kg，1-2次重击即可完胜。`;
+                } else if (powerGap > powerScore2 * 0.2) {
+                    meleeDesc = `${name1}力量明显占优，正面交锋可稳定压制${name2}。`;
+                } else {
+                    meleeDesc = `双方力量接近，近身僵持，胜负看临场发挥。`;
+                }
+            } else if (powerScore2 > powerScore1) {
+                if (powerGap > powerScore1 * 0.5) {
+                    meleeDesc = `${name2}拥有碾压级力量优势，${name1}几乎没有还手余地。`;
+                } else if (powerGap > powerScore1 * 0.2) {
+                    meleeDesc = `${name2}力量占优，正面持续压制${name1}。`;
+                } else {
+                    meleeDesc = `双方力量接近，近身僵持。`;
+                }
+            } else {
+                meleeDesc = `双方力量完全持平。`;
+            }
+
+            // 速度拉扯描述
+            let speedDesc = '';
+            const speedGap = Math.abs(speedScore1 - speedScore2);
+            if (speedScore1 > speedScore2) {
+                if (speedGap > speedScore2 * 0.5) {
+                    speedDesc = `${name1}速度与反应碾压，全程拉扯遛打，${name2}完全跟不上节奏。`;
+                } else if (speedGap > speedScore2 * 0.2) {
+                    speedDesc = `${name1}速度反应占优，走位灵活持续消耗对手。`;
+                } else {
+                    speedDesc = `双方速度反应接近，拉扯互有攻防。`;
+                }
+            } else if (speedScore2 > speedScore1) {
+                if (speedGap > speedScore1 * 0.5) {
+                    speedDesc = `${name2}速度反应碾压，${name1}完全无法捕捉动作。`;
+                } else if (speedGap > speedScore1 * 0.2) {
+                    speedDesc = `${name2}速度反应占优，灵活压制拉扯。`;
+                } else {
+                    speedDesc = `双方速度反应接近。`;
+                }
+            } else {
+                speedDesc = `双方速度反应完全持平。`;
+            }
+
+            // 耐力描述
+            let enduranceDesc = '';
+            const enduranceGap = Math.abs(enduranceScore1 - enduranceScore2);
+            if (enduranceScore1 > enduranceScore2) {
+                if (enduranceGap > enduranceScore2 * 0.5) {
+                    enduranceDesc = `${name1}耐力碾压，持久战${name2}很快体力透支落败。`;
+                } else if (enduranceGap > enduranceScore2 * 0.2) {
+                    enduranceDesc = `${name1}耐力占优，越打优势越大。`;
+                } else {
+                    enduranceDesc = `双方耐力接近，持久战看意志。`;
+                }
+            } else if (enduranceScore2 > enduranceScore1) {
+                if (enduranceGap > enduranceScore1 * 0.5) {
+                    enduranceDesc = `${name2}耐力碾压，${name1}续航明显不足。`;
+                } else if (enduranceGap > enduranceScore1 * 0.2) {
+                    enduranceDesc = `${name2}耐力占优，后期稳步取胜。`;
+                } else {
+                    enduranceDesc = `双方耐力接近。`;
+                }
+            } else {
+                enduranceDesc = `双方耐力完全持平。`;
+            }
+
+            // 最终结果
+            let finalResult = '';
+            if (totalWinRate >= 90) {
+                finalResult = `${name1}实力绝对碾压，综合胜率${totalWinRate}%，完胜${name2}无悬念。`;
+            } else if (totalWinRate >= 70) {
+                finalResult = `${name1}实力明显占优，综合胜率${totalWinRate}%，绝大多数情况取胜。`;
+            } else if (totalWinRate >= 55) {
+                finalResult = `${name1}略占上风，综合胜率${totalWinRate}%，有小概率被翻盘。`;
+            } else if (totalWinRate >= 45) {
+                finalResult = `双方实力持平，综合胜率${totalWinRate}%，胜负全看临场。`;
+            } else if (totalWinRate >= 30) {
+                finalResult = `${name2}略占上风，${name1}需战术奇袭才有机会。`;
+            } else if (totalWinRate >= 10) {
+                finalResult = `${name2}实力明显占优，${name1}很难取胜。`;
+            } else {
+                finalResult = `${name2}绝对碾压，${name1}毫无抗衡能力。`;
+            }
+
+            return {
+                totalWinRate,
+                meleeWinRate,
+                speedWinRate,
+                enduranceWinRate,
+                meleeDesc,
+                speedDesc,
+                enduranceDesc,
+                finalResult,
+                name1,
+                name2
+            };
+        }
+
+        // ===================== 对战结果渲染函数 =====================
+        function renderBattleResult(result) {
+            const battleResult = document.getElementById('battleResult');
+            document.getElementById('battleTitle').innerText = `${result.name1} VS ${result.name2} 对战结果`;
+            document.getElementById('winRate').innerText = `进攻方综合胜率：${result.totalWinRate}%`;
+            document.getElementById('scene1').innerText = result.meleeDesc;
+            document.getElementById('scene2').innerText = result.speedDesc;
+            document.getElementById('scene3').innerText = result.enduranceDesc;
+            document.getElementById('finalResult').innerText = result.finalResult;
+            battleResult.style.display = 'block';
+        }
+
+        // ===================== 按钮事件绑定 =====================
+        document.getElementById('calcBtn').addEventListener('click', function() {
+            const input = document.getElementById('trainInput').value.trim();
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const results = document.getElementById('results');
+
+            if (!input) {
+                alert("请输入车次编号");
+                return;
+            }
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            results.style.display = 'none';
+
+            setTimeout(() => {
+                const train = matchTrain(input);
+                if (!train) {
+                    loading.style.display = 'none';
+                    error.style.display = 'block';
+                    return;
+                }
+
+                const gender = train.defaultGender;
+                const res = calcFinalStats(train, gender);
+                const stats = res.stats;
+                const level = res.level;
+                const radarData = getRadarData(stats, gender, train.isSpecial);
+
+                document.getElementById('trainName').innerText = train.name;
+                document.getElementById('genderVal').innerText = gender;
+                document.getElementById('levelVal').innerText = level;
+                fillOriginTable(train);
+                fillPhysiqueTable(stats);
+                drawRadarChart(radarData, train.series, train.name);
+                document.getElementById('levelDesc').innerHTML = genLevelDesc(stats, gender, level, train.isSpecial);
+
+                loading.style.display = 'none';
+                results.style.display = 'block';
+            }, 800);
+        });
+
+        document.getElementById('trainInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') document.getElementById('calcBtn').click();
+        });
+
+        document.getElementById('battleBtn').addEventListener('click', function() {
+            const train1Input = document.getElementById('train1').value.trim();
+            const train2Input = document.getElementById('train2').value.trim();
+
+            if (!train1Input || !train2Input) {
+                alert("请输入完整的进攻方和防守方车次");
+                return;
+            }
+
+            const train1 = matchTrain(train1Input);
+            const train2 = matchTrain(train2Input);
+
+            if (!train1 || !train2) {
+                alert("未匹配到对应列车，请检查车次格式");
+                return;
+            }
+
+            const battleData = calcBattleResult(train1, train2);
+            renderBattleResult(battleData);
+        });
+
+        document.getElementById('train1').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') document.getElementById('battleBtn').click();
+        });
+        document.getElementById('train2').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') document.getElementById('battleBtn').click();
+        });
+
+        // 回车触发对战
+        document.getElementById('train1').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') document.getElementById('battleBtn').click();
+        });
+        document.getElementById('train2').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') document.getElementById('battleBtn').click();
+        });
+    </script>
+</body>
+</html>
